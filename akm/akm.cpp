@@ -39,7 +39,7 @@ int akm1(int m, int n)
 
 //************************************
 // Method:    akm2
-// FullName:  非递归解法一（书上解法）
+// FullName:  非递归解法一
 // Access:    public 
 // Returns:   int
 // Qualifier: non-recursion
@@ -48,6 +48,9 @@ int akm1(int m, int n)
 //************************************
 int akm2(int m, int n)
 {
+	/* 这个解法有其特殊性，因为递归调用数为一，没有并列调用（一个以上参数为递归调用，如akm(akm(...),akm(...))） */
+	//这样，在栈中，调用关系为线性关系，而不是树形关系
+
 	//栈的惰性求值方法，若表达式中含有非求值akm函数，则记录它在链表中的位置
 	//由于存在m和n参数以及akm函数返回值，因此一个结点中有m,n,val
 	struct akm_node
@@ -140,10 +143,7 @@ int main()
 	printf("============ 递归 ===========\n");
 	printf("akm(2,1)=%d\n", akm1(2, 1));
 	printf("\n");
-	printf("============ 非递归方法一 ===========\n");
-	printf("akm(2,1)=%d\n", akm2(2, 1));
-	printf("\n");
-	printf("============ 非递归方法二 ===========\n");
+	printf("============ 非递归 ===========\n");
 	printf("akm(2,1)=%d\n", akm2(2, 1));
 	printf("\n");
 	return 0;
