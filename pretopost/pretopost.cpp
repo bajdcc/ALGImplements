@@ -82,18 +82,18 @@ void delete_tree(node *pnode)
 //************************************
 void pretopost2(char *str)
 {
-	std::stack<node*> stk;
+	std::stack<node*> stk;//存放树结点的栈
 	node *top, *root;
 	top = root = NULL;
 	while (*str)
 	{
-		bool num;
+		bool num;//是否是操作数
 		char c;
 		c = *str;
 		if (!stk.empty())
 		{
 			top = stk.top();
-			if (top->left && top->right)
+			if (top->left && top->right)//如果当前结点的左右子树均满，则弹出此结点
 			{
 				stk.pop();
 				continue;
@@ -104,7 +104,7 @@ void pretopost2(char *str)
 		if (num || top)
 		{
 			node *newnode;
-			if (!top->left || !top->right)
+			if (!top->left || !top->right)//建立新的结点，将其安插在top的孩子上
 			{
 				newnode = new node();
 				newnode->data = c;
@@ -115,23 +115,23 @@ void pretopost2(char *str)
 				else
 					top->right = newnode;
 			}			
-			if (!num)
+			if (!num)//如果是操作符，则变更当前top结点，使其指向新结点（操作符）
 			{
 				stk.push(newnode);
 			}
 		}
 		else
 		{
-			top = new node();
+			top = new node();//如果top是空，意味着栈为空，则初始化
 			top->data = c;
 			top->left = NULL;
 			top->right = NULL;
-			root = top;
+			root = top;//放置根结点
 			stk.push(top);
 		}
 	}
 	print_post(root);
-	delete_tree(root);
+	delete_tree(root);//递归删除
 }
 
 int main(int argc, char* argv[])
