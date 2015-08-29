@@ -7,6 +7,8 @@
 /*     lcseq      /     lcstr                                           */
 /************************************************************************/
 
+//注意！需要输出多组结果！
+
 int length(char *pstr)
 {
 	int i;
@@ -77,13 +79,13 @@ void build_btree(char *x, int **mat, int m, int n, int parent, std::vector<node>
 		printf("\n");
 		return;
 	}
-	if (m == 0 && n == 0)
+	if (m == 0 && n == 0)//处理左上角结点的情况Z(0,0)
 	{
 		build_btree(x, mat, -1, -1, parent, tree);
 		return;
 	}
 	int p = mat[m][n];
-	if (mat[m][n] == 0)
+	if (mat[m][n] == 0)//防止访问重复结点
 		return;
 	mat[m][n] = 0;
 	node newnode;
@@ -167,7 +169,7 @@ void lcseq(char *x, char *y)
 	int m, n, i, j;
 	int **zmat, *zmat0;
 	int **pmat, *pmat0;
-	std::vector<node> tree;//保存二叉树的数组
+	std::vector<node> tree;//保存二叉树的数组（栈式存储）
 	//计算长度
 	m = length(x);
 	n = length(y);
@@ -218,7 +220,7 @@ void lcseq(char *x, char *y)
 	root.parent = -1;
 	root.c = '\0';
 	tree.push_back(root);
-	printf("Result\n\n");
+	printf("------------- Result -------------\n");
 	build_btree(x, pmat, m - 1, n - 1, 0, tree);
 	//清理工作
 	delete[] zmat;
@@ -228,9 +230,75 @@ void lcseq(char *x, char *y)
 }
 
 
+//************************************
+// Method:    最长公共子串（DP动态规划）
+// FullName:  lcstr
+// Access:    public 
+// Returns:   void
+// Qualifier:
+// Parameter: char * x
+// Parameter: char * y
+//************************************
 void lcstr(char *x, char *y)
 {
-
+	//以Y作参考串，建立参考数组Z，然后遍历X
+	//即：对所有i，存在j，使X[i]==Y[j]，则Z'[j]=Z[j]+1
+	//跟踪Z中最大值
+	int i, j, m, n, *z, max;
+	std::vector<int> str_indexes;//记录符合要求的lcstr起始位置（可能有多个）
+	m = length(x);
+	n = length(y);//Y作参考串
+	z = new int[n + 1];
+	for (j = 0; j <= n; j++) z[j] = 0;//初始化
+	max = 0;
+	printf("    ");
+	for (j = 0; j < n; j++)
+	{
+		printf("%-3c", y[j]);
+	}
+	printf("\n");
+	for (i = 0; i < m; i++)
+	{
+		char c;
+		c = x[i];
+		printf("%-4c", c);
+		for (j = n - 1; j >= 0; j--)
+		{
+			if (c == y[j])
+			{
+				z[j + 1] = z[j] + 1;
+				int zj = z[j + 1];
+				if (zj > max)
+				{
+					max = zj;
+					str_indexes.clear();
+				}
+				if (zj == max)
+				{
+					str_indexes.push_back(j - zj);
+				}
+			}
+			else
+			{
+				z[j + 1] = 0;
+			}
+		}
+		for (j = 1; j <= n; j++)
+		{
+			printf("%-3d", z[j]);
+		}
+		printf("\n");
+	}
+	printf("------------- Result -------------\n");
+	for (auto& v : str_indexes)
+	{
+		for (j = v; j < max + v; j++)
+		{
+			printf("%c", y[j]);
+		}
+		printf("\n");
+	}
+	delete[] z;
 }
 
 int main(int argc, char* argv[])
