@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include <stdio.h>
-#include <stack>
+#include <vector>
 
 /************************************************************************/
 /* 最长公共子序列 / 最长公共子串                                        */
@@ -40,6 +40,77 @@ void print_matrix(int **mat, char *x, char *y, int m0, int n0, int m, int n)
  * > 子序列则是不改变序列的顺序，而从序列中去掉任意的元素而获得新的序列
  * > 【也就是说，子串中字符的位置必须是连续的，子序列则可以不必连续。】
  */
+
+struct node
+{
+	int parent;
+	char c;
+};
+
+//************************************
+// Method:    构建二叉树
+// FullName:  build_btree
+// Access:    public 
+// Returns:   void
+// Qualifier:
+// Parameter: char * x 原始字符串X
+// Parameter: int * * mat 跟踪矩阵
+// Parameter: int m 串X长度
+// Parameter: int n 串Y长度
+// Parameter: int parent 父结点ID
+// Parameter: std::stack<node> & tree 树
+//************************************
+void build_btree(char *x, int **mat, int m, int n, int parent, std::vector<node>& tree)
+{
+	if (m == -1 || n == -1)//跟踪到叶子结点，可以打印
+	{
+		int i;
+		for (i = parent; i != -1; i = tree[i].parent)
+		{
+			char c;
+			c = tree[i].c;
+			if (c)
+			{
+				printf("%c", c);
+			}
+		}
+		printf("\n");
+		return;
+	}
+	if (m == 0 && n == 0)
+	{
+		build_btree(x, mat, -1, -1, parent, tree);
+		return;
+	}
+	int p = mat[m][n];
+	if (mat[m][n] == 0)
+		return;
+	mat[m][n] = 0;
+	node newnode;
+	newnode.c = '\0';
+	newnode.parent = parent;
+	tree.push_back(newnode);
+	parent = tree.size() - 1;
+	switch (p)
+	{
+	case 1://左上，相同
+		tree.back().c = x[m];
+		build_btree(x, mat, m, n - 1, parent, tree);
+		break;
+	case 2://上
+		build_btree(x, mat, m - 1, n, parent, tree);
+		break;
+	case 3://左
+		build_btree(x, mat, m, n - 1, parent, tree);
+		break;
+	case 4://左和上
+		build_btree(x, mat, m, n - 1, parent, tree);
+		build_btree(x, mat, m - 1, n, parent, tree);
+		break;
+	default:
+		break;
+	}
+}
 
 //************************************
 // Method:    最长公共子序列（DP动态规划）
@@ -88,10 +159,15 @@ void lcseq(char *x, char *y)
 	//     递推：
 	//     1) X[i] == Y[j] ==> Z(i,j) = Z(i-1,j-1) + 1
 	//     2) X[i] <> Y[j] ==> Z(i,j) = max{Z(x,y-1), Z(x-1,y)}
+	//
+	//================ 跟踪输出所有LCS ================
+	//由Z(m,n)可以向左上方遍历，所过所有路径即形成二叉树
+	//故考虑建立二叉树，实行自叶子向根部的遍历
 
 	int m, n, i, j;
 	int **zmat, *zmat0;
 	int **pmat, *pmat0;
+	std::vector<node> tree;//保存二叉树的数组
 	//计算长度
 	m = length(x);
 	n = length(y);
@@ -136,11 +212,21 @@ void lcseq(char *x, char *y)
 	print_matrix(zmat, x, y, 1, 1, m + 1, n + 1);
 	printf("Trace matrix\n");
 	print_matrix(pmat, x, y, 0, 0, m, n);
+
+	//跟踪开始
+	node root;
+	root.parent = -1;
+	root.c = '\0';
+	tree.push_back(root);
+	printf("Result\n\n");
+	build_btree(x, pmat, m - 1, n - 1, 0, tree);
+	//清理工作
 	delete[] zmat;
 	delete[] zmat0;
 	delete[] pmat;
 	delete[] pmat0;
 }
+
 
 void lcstr(char *x, char *y)
 {
