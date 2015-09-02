@@ -329,14 +329,6 @@ int main(int argc, char* argv[])
 		printf("key: %f, val: %d\n", rnd, tree_find(search_node, rnd));
 	}
 	delete[] (sum);
-// 	printf("a: %s\n", str1);
-// 	printf("b: %s\n", str2);
-// 	printf("========= lcseq ==========\n");
-// 	lcseq(str1, str2);
-// 	printf("\n");
-// 	printf("========= lcstr ==========\n");
-// 	lcstr(str1, str2);
-// 	printf("\n");
 	return 0;
 }
 
