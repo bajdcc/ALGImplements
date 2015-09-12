@@ -316,7 +316,7 @@ template<class T, class N>
 bool AVLTree<T, N>::Delete(T data)
 {
 	N *p = FindNode(data);
-
+	// not implemented
 	return p != NULL;
 }
 

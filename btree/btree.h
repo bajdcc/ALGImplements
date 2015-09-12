@@ -412,14 +412,14 @@ template <class T, class N>
 void BiTree<T, N>::PostOrderNoRecursion2()
 {
 	stack<N*> s;
-	N *cur;                      //当前结点 
+	N *cur = root;               //当前结点 
 	N *pre = NULL;               //前一次访问的结点 
 	s.push(root);
-	while (!s.empty())
+	while (!s.empty() && cur)
 	{
 		cur = s.top();
 		if ((cur->lchild == NULL&&cur->rchild == NULL) ||
-			(pre != NULL && (pre == cur->lchild || pre == cur->rchild)))
+			((pre == cur->lchild || pre == cur->rchild)))
 		{
 			//当前为叶子结点或上一次访问为孩子结点，即按左-右-根（孩子-根）顺序，孩子全部访问过，接着访问父结点
 			cout << cur->data;
