@@ -30,6 +30,12 @@
     <ClInclude Include="avltree.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="baltree.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="rbtree.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

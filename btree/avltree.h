@@ -2,7 +2,7 @@
 
 #include <stack>
 #include <vector>
-#include "btree.h"
+#include "baltree.h"
 
 using namespace std;
 
@@ -15,39 +15,31 @@ struct AVLNode
 };
 
 template<class T, class N = AVLNode<T> >
-class AVLTree : public BiTree<T, N>
+class AVLTree : public BALTree<T, N>
 {
 public:
 	AVLTree();
 	AVLTree(const vector<T>& s);
 
-	bool Insert(T data);
-	bool Delete(T data);
-
-	bool Find(T data);
-
 protected:
 	virtual N* New();
-
-	N* FindNode(T data);
+	virtual TStatus CheckPathAfterInsert(N *&child, N *p, N *parent, N *ancestor);
+	virtual TStatus CheckPathAfterDelete(N *&child, N *p, N *parent, N *ancestor);
+	virtual void BalanceInternal(N *child, N *p, N *parent, N *ancestor);
+	virtual N* Replace(stack<N*>& path);
+	virtual void PrintData(N *bt);
 };
 
 template<class T, class N>
-AVLTree<T, N>::AVLTree()
+AVLTree<T, N>::AVLTree() : BALTree<T, N>()
 {
 
 }
 
 template<class T, class N>
-AVLTree<T, N>::AVLTree(const vector<T>& s)
+AVLTree<T, N>::AVLTree(const vector<T>& s) : BALTree<T, N>(s)
 {
-	if (s.empty()) throw "数组不能为空";
-	root = new N;
-	root->data = s[0];
-	root->BF = 0;
-	root->lchild = NULL;
-	root->rchild = NULL;
-	for (int i = 1; i < s.Length(); i++) Insert(s[i]);
+
 }
 
 template<class T, class N>
@@ -57,93 +49,206 @@ N* AVLTree<T, N>::New()
 	newp->BF = 0;
 	return newp;
 }
+template<class T, class N>
+void AVLTree<T, N>::PrintData(N *bt)
+{
+	cout << bt->data << ',' << bt->BF;
+}
 
 template<class T, class N>
-bool AVLTree<T, N>::Insert(T data)
+TStatus AVLTree<T, N>::CheckPathAfterInsert(N *&child, N *p, N *parent, N *ancestor)
 {
-	N* newp = New();
-	newp->data = data;
+	if (parent->lchild == p) // p是parent的左孩子，那么parent的BF++
+		parent->BF++;  // BF的变化：-1->0->1->2
+	else // p是parent的右孩子，那么parent的BF--
+		parent->BF--;  // BF的变化：1->0->-1->-2
 
-	if (root == NULL)
+	if (parent->BF == 2 || parent->BF == -2) // *parent是失衡结点（第一个|BF|>=2）
+		return T_BREAK; // 找到最小不平衡子树的根结点
+
+	if (parent->BF == 0) // 在插入新结点后，*parent的左右子树高度相等（BF为0），说明以*parent为根的子树高度未增加
+		return T_OK;       // 所以路径中的其余祖先结点无需调整BF
+
+	return T_CONTINUE;
+}
+
+template<class T, class N>
+TStatus AVLTree<T, N>::CheckPathAfterDelete(N *&child, N *p, N *parent, N *ancestor)
+{
+	if (p && p->BF == 0)
 	{
-		root = newp;
-		return true;
+		if (parent->lchild == p) // p是parent的左孩子，p的BF为0，说明p层数减少一，故parent的BF--
+			parent->BF--;
+		else // p是parent的右孩子，p的BF为0，说明p层数减少一，故parent的BF++
+			parent->BF++;
 	}
 
-	stack<N*> path; // 存储插入前的查找路径（便于回溯）
-
-	//////////////////////////////////////////////////////////////////////////
-	// 插入操作
-	N *p = root;
-	while (true)
+	if (parent->BF == 2) // *parent是失衡结点（第一个|BF|>=2）
 	{
-		path.push(p);
-		if (newp->data < p->data) // 插入值小于根结点，入左子树
-		{
-			if (p->lchild != NULL)
-			{
-				p = p->lchild; // 值小于LL，则递归入L
-			}
-			else
-			{
-				p->lchild = newp; break; // 根结点无左孩子，正好插入
-			}
-		}
-		else if (newp->data > p->data) // 插入值大于根结点，入右子树
-		{
-			if (p->rchild != NULL)
-			{
-				p = p->rchild; // 值大于RR，则递归入R
-			}
-			else
-			{
-				p->rchild = newp; break; // 根结点无右孩子，正好插入
-			}
-		}
-		else // 插入值等于根结点，返回
-		{
-			delete newp; return false;
-		}
+		child = parent->lchild; // 左树右旋
+		return T_BREAK; // 找到最小不平衡子树的根结点
+	}
+	else if (parent->BF == -2) // *parent是失衡结点（第一个|BF|>=2）
+	{
+		child = parent->rchild; // 右树左旋
+		return T_BREAK; // 找到最小不平衡子树的根结点
 	}
 
-	// 插入完毕
+	if (parent->BF != 0) // 在删除结点后，*parent的左右子树高度差绝对值为1（|BF|为1），说明以*parent为根的子树高未度
+		return T_OK;       // 所以路径中的其余祖先结点无需调整BF
 
-	//////////////////////////////////////////////////////////////////////////
+	return T_CONTINUE;
+}
 
-	// 调整插入路径上结点的BF，定位失衡的结点*p及其父结点*parent
-
-	N *child = NULL;  // *child作为*p的孩子结点
-	p = newp;
-	N *parent = path.top(); // *parent是*p的父结点
+template<class T, class N>
+N* AVLTree<T, N>::Replace(stack<N*>& path)
+{
+	N *p = path.top();
 	path.pop();
-	while (true)
+	N *parent = path.empty() ? NULL : path.top();
+	N *silbing = NULL; // 为p的兄弟结点，用于旋转
+	if (!p->lchild && !p->rchild) // p为叶子结点，直接删除
 	{
-		if (parent->lchild == p) // p是parent的左孩子，那么parent的BF++
-			parent->BF++;  // BF的变化：-1->0->1->2
-		else // p是parent的右孩子，那么parent的BF--
-			parent->BF--;  // BF的变化：1->0->-1->-2
-
-		if (parent->BF == 2 || parent->BF == -2) // *parent是失衡结点（第一个|BF|>=2）
-			break; // 找到最小不平衡子树的根结点
-
-		if (parent->BF == 0) // 在插入新结点后，*parent的左右子树高度相等（BF为0），说明以*parent为根的子树高度未增加
-			return true;       // 所以路径中的其余祖先结点无需调整BF
-
-		if (path.empty()) // 直到树的根结点，在path中没有结点|BF|超出2，所以不必调整（导致有BF为+1,-1等下次插入再行调整）
-			return true;
-
-		child = p; p = parent; parent = path.top(); // 由path向上回溯
-		path.pop();
+		if (!parent) // 根结点
+		{
+			this->root = NULL;
+		}
+		else if (parent->lchild == p)
+		{
+			parent->lchild = NULL;
+			parent->BF--;
+			silbing = parent->rchild;
+		}
+		else
+		{
+			parent->rchild = NULL;
+			parent->BF++;
+			silbing = parent->lchild;
+		}
 	}
+	else if (p->lchild && p->rchild) // 双子树，转化为单子树
+	{
+		// 注意：替换时，BF也要替换
+		if (p->lchild->rchild) // 替换左子树最右结点
+		{
+			path.push(p);
+			path.push(p->lchild);
+			N *lr = p->lchild->rchild;
+			while (lr)
+			{
+				path.push(lr);
+				lr = lr->rchild;
+			}
+			lr = path.top();
+			lr->BF = p->BF;
+			path.pop();
+			if (!parent) // 根结点
+				this->root = lr;
+			else if (parent->lchild == p)
+				parent->lchild = lr;
+			else
+				parent->rchild = lr;
+			lr->lchild = p->lchild;
+			lr->rchild = p->rchild;
+			path.top()->rchild = NULL;
+			path.top()->BF++;
+		}
+		else if (p->rchild->lchild) // 替换右子树最左结点
+		{
+			path.push(p);
+			path.push(p->rchild);
+			N *rl = p->rchild->lchild;
+			while (rl)
+			{
+				path.push(rl);
+				rl = rl->lchild;
+			}
+			rl = path.top();
+			rl->BF = p->BF;
+			path.pop();
+			if (!parent) // 根结点
+				this->root = rl;
+			else if (parent->lchild == p)
+				parent->lchild = rl;
+			else
+				parent->rchild = rl;
+			rl->lchild = p->lchild;
+			rl->rchild = p->rchild;
+			path.top()->lchild = NULL;
+			path.top()->BF--;
+		}
+		else // 替代孩子
+		{
+			if (!parent) // 根结点
+			{
+				this->root = p->lchild;
+				this->root->rchild = p->rchild;
+				this->root->BF = p->BF - 1;
+				silbing = p->rchild;
+			}
+			else if (parent->lchild == p)
+			{
+				parent->lchild = p->rchild;
+				parent->lchild->lchild = p->lchild;
+				parent->lchild->BF = p->BF + 1;
+				parent->lchild->BF++;
+				silbing = p->lchild;
+				path.push(parent->lchild);
+			}
+			else
+			{
+				parent->rchild = p->lchild;
+				parent->rchild->rchild = p->rchild;
+				parent->rchild->BF = p->BF - 1;
+				silbing = p->rchild;
+				path.push(parent->rchild);
+			}
+		}
+	}
+	else if (p->lchild) // 左单子树
+	{
+		if (!parent) // 根结点
+		{
+			this->root = p->lchild;
+		}
+		else
+		{
+			if (parent->lchild == p)
+				parent->lchild = NULL;
+			else
+				parent->rchild = NULL;
+			parent->lchild = p->lchild;
+			parent->BF--;
+			silbing = parent->rchild;
+		}
+	}
+	else // 右单子树
+	{
+		if (!parent) // 根结点
+		{
+			this->root = p->rchild;
+		}
+		else
+		{
+			if (parent->lchild == p)
+				parent->lchild = NULL;
+			else
+				parent->rchild = NULL;
+			parent->rchild = p->rchild;
+			parent->BF++;
+			silbing = parent->lchild;
+		}
+	}
+	delete p;
+	return silbing;
+}
 
+template<class T, class N>
+void AVLTree<T, N>::BalanceInternal(N *child, N *p, N *parent, N *ancestor)
+{
 	//////////////////////////////////////////////////////////////////////////
-	// *parent失衡，以下代码进行调整
-	N *ancestor = path.empty() ? NULL : path.top(); // ancestor为parent的双亲结点
-	if (!path.empty()) path.pop();
 
-	//////////////////////////////////////////////////////////////////////////
-
-	if (parent->BF == 2 && p->lchild == child)    // LL
+	if (parent->BF == 2 && (!child || p->lchild == child))    // LL
 	{
 		// 前
 		//                                      A(parent,root),BF(2)
@@ -154,39 +259,24 @@ bool AVLTree<T, N>::Insert(T data)
 
 		// 后
 		//                  B(p,root),BF(0)
-		//                  |                 
+		//                  |
 		//        BL(X)_____|___________________A(parent),BF(0)
 		//                                      |
 		//                               BR_____|_____AR
 
-		parent->lchild = p->rchild;
-		p->rchild = parent;
+		this->RotateRight(p, parent, ancestor);
 
 		parent->BF = 0;
 		p->BF = 0;
-
-		if (ancestor != NULL)
-		{
-			if (ancestor->lchild == parent) // 修改p的双亲为ancestor
-				ancestor->lchild = p;
-			else
-				ancestor->rchild = p;
-		}
-		else
-		{
-			root = p;
-		}
-
-		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	if (parent->BF == -2 && p->rchild == child)    // RR
+	else if (parent->BF == -2 && (!child || p->rchild == child))    // RR
 	{
 		// 前
 		//                  A(parent,root),BF(-2)
-		//                  |                
+		//                  |
 		//           AL_____|___________________|
 		//                                      B(p),BF(-1)
 		//                               BL_____|_____BR(X)
@@ -198,30 +288,15 @@ bool AVLTree<T, N>::Insert(T data)
 		//                  |
 		//           AL_____|_____BL
 
-		parent->rchild = p->lchild; // 和LL只有这两句不一样
-		p->lchild = parent;
+		this->RotateLeft(p, parent, ancestor);
 
 		parent->BF = 0;
 		p->BF = 0;
-
-		if (ancestor != NULL)
-		{
-			if (ancestor->lchild == parent) // 修改p的双亲为ancestor
-				ancestor->lchild = p;
-			else
-				ancestor->rchild = p;
-		}
-		else
-		{
-			root = p;
-		}
-
-		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	if (parent->BF == 2 && p->rchild == child)    // LR
+	else if (parent->BF == 2 && (!child || p->rchild == child))    // LR
 	{
 		// 前
 		//                                      A(parent,root),BF(2)
@@ -240,33 +315,17 @@ bool AVLTree<T, N>::Insert(T data)
 		//           BL_____|_____CL(x)  CR_____|_____AR
 
 		N *pc = p->rchild;
-		parent->lchild = pc->rchild;
-		p->rchild = pc->lchild;
-		pc->lchild = p;
-		pc->rchild = parent;
+		this->RotateLeft(pc, p, parent);
+		this->RotateRight(pc, parent, ancestor);
 
 		pc->BF = 0;
 		p->BF = 0;
 		parent->BF = -1;
-
-		if (ancestor != NULL)
-		{
-			if (ancestor->lchild == parent) // 修改pc的双亲为ancestor
-				ancestor->lchild = pc;
-			else
-				ancestor->rchild = pc;
-		}
-		else
-		{
-			root = pc;
-		}
-
-		return true;
 	}
 
 	//////////////////////////////////////////////////////////////////////////
 
-	if (parent->BF == -2 && p->lchild == child)    // RL
+	else if (parent->BF == -2 && (!child || p->lchild == child))    // RL
 	{
 		// 前
 		//                  A(parent,root),BF(-2)
@@ -285,59 +344,11 @@ bool AVLTree<T, N>::Insert(T data)
 		//           AL_____|_____CL   CR(x)_____|_____BR
 
 		N *pc = p->lchild;
-		parent->rchild = pc->lchild;
-		p->lchild = pc->rchild;
-		pc->lchild = parent;
-		pc->rchild = p;
+		this->RotateRight(pc, p, parent);
+		this->RotateLeft(pc, parent, ancestor);
 
 		pc->BF = 0;
 		p->BF = 0;
 		parent->BF = 1;
-
-		if (ancestor != NULL)
-		{
-			if (ancestor->lchild == parent) // 修改pc的双亲为ancestor
-				ancestor->lchild = pc;
-			else
-				ancestor->rchild = pc;
-		}
-		else
-		{
-			root = pc;
-		}
-
-		return true;
 	}
-
-	return true;
-}
-
-template<class T, class N>
-bool AVLTree<T, N>::Delete(T data)
-{
-	N *p = FindNode(data);
-	// not implemented
-	return p != NULL;
-}
-
-template<class T, class N>
-bool AVLTree<T, N>::Find(T data)
-{
-	return FindNode(data) != NULL;
-}
-
-template<class T, class N>
-N* AVLTree<T, N>::FindNode(T data)
-{
-	N *p = root;
-	while (p != NULL)
-	{
-		if (p->data > data)
-			p = p->rchild;
-		else if (p->data < data)
-			p = p->lchild;
-		else
-			return p;
-	}
-	return NULL;
 }

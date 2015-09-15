@@ -73,6 +73,7 @@ protected:
 	void PostOrder(N *bt);
 
 	void Print(N *bt, int level);
+	virtual void PrintData(N *bt);
 
 	int Height(N *bt);
 	int Count(N *bt);
@@ -449,9 +450,17 @@ void BiTree<T, N>::Print(N *bt, int level)
 	Print(bt->rchild, level + 1);
 	{
 		for (int i = 0; i < level; i++) cout << "    |"; //缩进
-		cout << "—<" << bt->data << ">" << endl; //打印"|—<data>"形式
+		cout << "—<";
+		PrintData(bt);
+		cout << ">" << endl; //打印"|—<data>"形式
 	}
 	Print(bt->lchild, level + 1);
+}
+
+template <class T, class N>
+void BiTree<T, N>::PrintData(N *bt)
+{
+	cout << bt;
 }
 
 template <class T, class N>
