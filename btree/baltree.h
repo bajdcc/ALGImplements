@@ -9,6 +9,7 @@ using namespace std;
 const int T_OK = 0;
 const int T_BREAK = 1;
 const int T_CONTINUE = 2;
+const int T_CONTINUE_STATUS = 3;
 typedef int TStatus;
 
 template<class T, class N>
@@ -22,14 +23,16 @@ class BALTree : public BiTree<T, N>
 		virtual bool Delete(T data);
 
 	protected:
-		virtual TStatus CheckPathAfterInsert(N *&child, N *p, N *parent, N *ancestor) = 0;
-		virtual TStatus CheckPathAfterDelete(N *&child, N *p, N *parent, N *ancestor) = 0;
-		virtual void BalanceInternal(N *child, N *p, N *parent, N *ancestor) = 0;
+		virtual TStatus CheckPathAfterInsert(N *child, N *p, N *parent, N *ancestor) = 0;
+		virtual TStatus CheckPathAfterDelete(N *child, N *p, N *parent, N *ancestor, TStatus status) = 0;
+		virtual TStatus BalanceInternalAfterInsert(N *child, N *p, N *parent, N *ancestor) = 0;
+		virtual TStatus BalanceInternalAfterDelete(N *child, N *p, N *parent, N *ancestor) = 0;
 		void RotateLeft(N *p, N *parent, N *ancestor); //左旋
 		void RotateRight(N *p, N *parent, N *ancestor); //右旋
 		virtual void HandleRoot();
-		void Balance(stack<N*>& path);
-		virtual N* Replace(stack<N*>& path) = 0;
+		void BalanceAfterInsert(stack<N*>& path);
+		void BalanceAfterDelete(stack<N*>& path);
+		virtual void Replace(stack<N*>& path) = 0;
 };
 
 template<class T, class N>
@@ -119,7 +122,7 @@ void BALTree<T, N>::RotateRight(N *p, N *parent, N *ancestor)
 }
 
 template<class T, class N>
-void BALTree<T, N>::Balance(stack<N*>& path)
+void BALTree<T, N>::BalanceAfterInsert(stack<N*>& path)
 {
 	N *child = NULL;  // *child作为*p的孩子结点
 	N *p = path.top();
@@ -135,11 +138,60 @@ void BALTree<T, N>::Balance(stack<N*>& path)
 		{
 			case T_OK:
 				return;
-			case T_BREAK:		
-				BalanceInternal(child, p, parent, ancestor);
+			case T_BREAK:
+				BalanceInternalAfterInsert(child, p, parent, ancestor);
 				return;
 			case T_CONTINUE:
 				break;
+		}
+
+		if (path.empty())
+			return;
+
+		child = p;
+		p = parent;
+		parent = path.top(); // 由path向上回溯
+		path.pop();
+	}
+}
+
+template<class T, class N>
+void BALTree<T, N>::BalanceAfterDelete(stack<N*>& path)
+{
+	// 替代结点
+	Replace(path);
+
+	if (path.empty())
+		return;
+
+	// 删除结点并平衡
+
+	N *p = NULL;
+	N *child = NULL;  // *child作为*p的孩子结点
+	N *parent = path.top(); // *parent是*p的父结点
+	path.pop();
+	N *ancestor;
+	TStatus status = T_OK;
+	while (true)
+	{
+		ancestor = path.empty() ? NULL : path.top();
+		if (status == T_CONTINUE_STATUS)
+			status = ancestor ? parent == ancestor->lchild ? T_DECL : T_DECR : T_OK;
+		status = CheckPathAfterDelete(child, p, parent, ancestor, status);
+		switch (status)
+		{
+		case T_OK:
+			return;
+		case T_BREAK:
+			status = BalanceInternalAfterDelete(child, p, parent, ancestor);
+			if (status == T_OK)
+				return;
+			break;
+		case T_CONTINUE:
+			status = T_OK;
+			break;
+		case T_CONTINUE_STATUS:
+			break;
 		}
 
 		if (path.empty())
@@ -215,8 +267,7 @@ bool BALTree<T, N>::Insert(T data)
 	//////////////////////////////////////////////////////////////////////////
 
 	// 调整插入路径上的结点
-	Balance(path);
-
+	BalanceAfterInsert(path);
 	return true;
 }
 
@@ -264,44 +315,11 @@ bool BALTree<T, N>::Delete(T data)
 		}
 	}
 
-	// 定位到结点
+	// 定位成功
 
 	//////////////////////////////////////////////////////////////////////////
 
-	// 替代结点
-	p = Replace(path);
-
-	//////////////////////////////////////////////////////////////////////////
-
-	if (path.empty())
-		return true;
-
-	// 删除结点并平衡
-
-	N *child = NULL;  // *child作为*p的孩子结点
-	N *parent = path.top(); // *parent是*p的父结点
-	path.pop();
-	N *ancestor;
-	while (true)
-	{
-		ancestor = path.empty() ? NULL : path.top();
-		switch (CheckPathAfterDelete(child, p, parent, ancestor))
-		{
-		case T_OK:
-			return true;
-		case T_BREAK:
-			BalanceInternal(child, p, parent, ancestor);
-			return true;
-		case T_CONTINUE:
-			break;
-		}
-
-		if (path.empty())
-			return true;
-
-		child = p;
-		p = parent;
-		parent = path.top(); // 由path向上回溯
-		path.pop();
-	}
+	// 调整删除路径上的结点
+	BalanceAfterDelete(path);
+	return true;
 }

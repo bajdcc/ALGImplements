@@ -51,8 +51,8 @@ int main(int argc, char* argv[])
 		cout << "输入序号：";
 		try
 		{
-			char buf[2];
-			cin.getline(buf, 2);
+			char buf[3];
+			cin.getline(buf, 3);
 			cin.sync();
 
 			switch (buf[0])
@@ -131,6 +131,8 @@ void BSTreeOper()
 	cout << "1. 输入数据" << endl;
 	cout << "2. 删除数据" << endl;
 	cout << "3. 打印树形图" << endl;
+	cout << "4. 随机初始化数据" << endl;
+	cout << "5. 随机初始化数据" << endl;
 	cout << "0. 返回" << endl;
 	cout << endl;
 
@@ -141,8 +143,8 @@ void BSTreeOper()
 		cout << "输入序号：";
 		try
 		{
-			char buf[2];
-			cin.getline(buf, 2);
+			char buf[3];
+			cin.getline(buf, 3);
 			cin.sync();
 
 			switch (buf[0])
@@ -150,6 +152,8 @@ void BSTreeOper()
 			case '1': BSTreeOper(avl, 1); break;
 			case '2': BSTreeOper(avl, 2); break;
 			case '3': PrintStructure(avl); break;
+			case '4': BSTreeOper(avl, 3); break;
+			case '5': BSTreeOper(avl, 4); break;
 			case '0': system("cls"); PrintMenu(); return;
 			default: throw "请输入正确的序号！";
 			}
@@ -165,6 +169,28 @@ void BSTreeOper()
 
 void BSTreeOper(AVL& avl, int type)
 {
+	if (type == 3)
+	{
+		int a[] = { 50, 20, 89, 19, 21, 80, 90, 22, 77, 88, 91, 87 };
+		for (int i = 0; i < sizeof(a) / sizeof(int); i++)
+		{
+			avl.Insert(a[i]);
+			PrintStructure(avl);
+		}
+		return;
+	}
+
+	if (type == 4)
+	{
+		int a[] = { 5, 4, 6, 3, 7, 2, 8, 1, 9 };
+		for (int i = 0; i < sizeof(a) / sizeof(int); i++)
+		{
+			avl.Insert(a[i]);
+			PrintStructure(avl);
+		}
+		return;
+	}
+
 	cout << "输入数据，以非数字结尾： ";
 
 	int number;
@@ -186,6 +212,7 @@ void BSTreeOper(AVL& avl, int type)
 			{
 				avl.Delete(number);
 			}
+			PrintStructure(avl);
 		}
 	}
 	catch (const char* pstr)
