@@ -96,12 +96,12 @@ TStatus AVLTree<T, N>::CheckPathAfterDelete(N *child, N *p, N *parent, N *ancest
 	}
 	else
 	{
-		if (status == T_DECL)
+		if (status == T_DECL) //平衡后，子树高度减少，那么要向上检查平衡性
 		{
 			parent->BF--;
 			return parent->BF == 0 ? T_CONTINUE_STATUS : T_OK;
 		}
-		else if (status == T_DECR)
+		else if (status == T_DECR) //平衡后，子树高度减少，那么要向上检查平衡性
 		{
 			parent->BF++;
 			return parent->BF == 0 ? T_CONTINUE_STATUS : T_OK;
@@ -111,7 +111,7 @@ TStatus AVLTree<T, N>::CheckPathAfterDelete(N *child, N *p, N *parent, N *ancest
 	if (parent->BF == 2 || parent->BF == -2) // *parent是失衡结点（第一个|BF|>=2）
 		return T_BREAK; // 找到最小不平衡子树的根结点
 
-	if (parent->BF != 0) // 在删除结点后，*parent的左右子树高度差绝对值为1（|BF|为1），说明以*parent为根的子树高未度
+	if (parent->BF != 0) // 在删除结点后，*parent的左右子树高度差绝对值为1（|BF|为1），说明以*parent为根的子树高度未改变
 		return T_OK;       // 所以路径中的其余祖先结点无需调整BF
 
 	return T_CONTINUE;
