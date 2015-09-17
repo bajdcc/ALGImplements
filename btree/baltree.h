@@ -25,8 +25,8 @@ class BALTree : public BiTree<T, N>
 	protected:
 		virtual TStatus CheckPathAfterInsert(N *child, N *p, N *parent, N *ancestor) = 0;
 		virtual TStatus CheckPathAfterDelete(N *child, N *p, N *parent, N *ancestor, TStatus status) = 0;
-		virtual TStatus BalanceInternalAfterInsert(N *child, N *p, N *parent, N *ancestor) = 0;
-		virtual TStatus BalanceInternalAfterDelete(N *child, N *p, N *parent, N *ancestor) = 0;
+		virtual TStatus BalanceInternalAfterInsert(N *child, N *&p, N *&parent, N *ancestor) = 0;
+		virtual TStatus BalanceInternalAfterDelete(N *child, N *&p, N *&parent, N *ancestor) = 0;
 		void RotateLeft(N *p, N *parent, N *ancestor); //×óÐý
 		void RotateRight(N *p, N *parent, N *ancestor); //ÓÒÐý
 		virtual void HandleRoot();

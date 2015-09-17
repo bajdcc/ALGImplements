@@ -28,15 +28,15 @@ protected:
 	virtual N* New();
 	virtual TStatus CheckPathAfterInsert(N *child, N *p, N *parent, N *ancestor);
 	virtual TStatus CheckPathAfterDelete(N *child, N *p, N *parent, N *ancestor, TStatus status);
-	virtual TStatus BalanceInternalAfterInsert(N *child, N *p, N *parent, N *ancestor);
-	virtual TStatus BalanceInternalAfterDelete(N *child, N *p, N *parent, N *ancestor);
+	virtual TStatus BalanceInternalAfterInsert(N *child, N *&p, N *&parent, N *ancestor);
+	virtual TStatus BalanceInternalAfterDelete(N *child, N *&p, N *&parent, N *ancestor);
 	virtual void Replace(stack<N*>& path);
 	virtual void PrintData(N *bt);
 
-	TStatus RotateLL(N *p, N *parent, N *ancestor);
-	TStatus RotateRR(N *p, N *parent, N *ancestor);
-	TStatus RotateLR(N *p, N *parent, N *ancestor);
-	TStatus RotateRL(N *p, N *parent, N *ancestor);
+	TStatus RotateLL(N *&p, N *&parent, N *ancestor);
+	TStatus RotateRR(N *&p, N *&parent, N *ancestor);
+	TStatus RotateLR(N *&p, N *&parent, N *ancestor);
+	TStatus RotateRL(N *&p, N *&parent, N *ancestor);
 };
 
 template<class T, class N>
@@ -296,7 +296,7 @@ void AVLTree<T, N>::Replace(stack<N*>& path)
 }
 
 template<class T, class N>
-TStatus AVLTree<T, N>::BalanceInternalAfterInsert(N *child, N *p, N *parent, N *ancestor)
+TStatus AVLTree<T, N>::BalanceInternalAfterInsert(N *child, N *&p, N *&parent, N *ancestor)
 {
 	//////////////////////////////////////////////////////////////////////////
 
@@ -332,7 +332,7 @@ TStatus AVLTree<T, N>::BalanceInternalAfterInsert(N *child, N *p, N *parent, N *
 }
 
 template<class T, class N>
-TStatus AVLTree<T, N>::BalanceInternalAfterDelete(N *child, N *p, N *parent, N *ancestor)
+TStatus AVLTree<T, N>::BalanceInternalAfterDelete(N *child, N *&p, N *&parent, N *ancestor)
 {
 	//////////////////////////////////////////////////////////////////////////
 
@@ -371,7 +371,7 @@ TStatus AVLTree<T, N>::BalanceInternalAfterDelete(N *child, N *p, N *parent, N *
 }
 
 template<class T, class N>
-inline TStatus AVLTree<T, N>::RotateLL(N *p, N *parent, N *ancestor)
+inline TStatus AVLTree<T, N>::RotateLL(N *&p, N *&parent, N *ancestor)
 {
 	// ǰ
 	//                                      A(parent,root),BF(2)
@@ -387,15 +387,17 @@ inline TStatus AVLTree<T, N>::RotateLL(N *p, N *parent, N *ancestor)
 	//                                      |
 	//                               BR_____|_____AR
 
+	bool descent = !parent->rchild;
 	this->RotateRight(p, parent, ancestor);
 
 	parent->BF = p->BF == 1 ? 0 : 1;
 	p->BF--;
-	return ancestor ? p == ancestor->lchild ? T_DECL : T_DECR : T_OK;
+	N *swap; swap = p; p = parent; parent = swap;
+	return (ancestor && descent) ? parent == ancestor->lchild ? T_DECL : T_DECR : T_OK;
 }
 
 template<class T, class N>
-inline TStatus AVLTree<T, N>::RotateRR(N *p, N *parent, N *ancestor)
+inline TStatus AVLTree<T, N>::RotateRR(N *&p, N *&parent, N *ancestor)
 {
 	// ǰ
 	//                  A(parent,root),BF(-2)
@@ -411,15 +413,17 @@ inline TStatus AVLTree<T, N>::RotateRR(N *p, N *parent, N *ancestor)
 	//                  |
 	//           AL_____|_____BL
 
+	bool descent = !parent->lchild;
 	this->RotateLeft(p, parent, ancestor);
 
 	parent->BF = p->BF == -1 ? 0 : -1;
 	p->BF++;
-	return ancestor ? p == ancestor->lchild ? T_DECL : T_DECR : T_OK;
+	N *swap; swap = p; p = parent; parent = swap;
+	return (ancestor && descent) ? parent == ancestor->lchild ? T_DECL : T_DECR : T_OK;
 }
 
 template<class T, class N>
-inline TStatus AVLTree<T, N>::RotateLR(N *p, N *parent, N *ancestor)
+inline TStatus AVLTree<T, N>::RotateLR(N *&p, N *&parent, N *ancestor)
 {
 	//////////////////////////////////////////////////////////////////////////
 
@@ -482,11 +486,12 @@ inline TStatus AVLTree<T, N>::RotateLR(N *p, N *parent, N *ancestor)
 		parent->BF = 0;
 		p->BF = 0;
 	}
-	return ancestor ? pc == ancestor->lchild ? T_DECL : T_DECR : T_OK;
+	parent = pc;
+	return ancestor ? parent == ancestor->lchild ? T_DECL : T_DECR : T_OK;
 }
 
 template<class T, class N>
-inline TStatus AVLTree<T, N>::RotateRL(N *p, N *parent, N *ancestor)
+inline TStatus AVLTree<T, N>::RotateRL(N *&p, N *&parent, N *ancestor)
 {
 	//////////////////////////////////////////////////////////////////////////
 
@@ -549,5 +554,6 @@ inline TStatus AVLTree<T, N>::RotateRL(N *p, N *parent, N *ancestor)
 		parent->BF = 0;
 		p->BF = 0;
 	}
-	return ancestor ? pc == ancestor->lchild ? T_DECL : T_DECR : T_OK;
+	parent = pc;
+	return ancestor ? parent == ancestor->lchild ? T_DECL : T_DECR : T_OK;
 }
